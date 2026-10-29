@@ -1,0 +1,346 @@
+"""
+VidyāSetu (विद्या-सेतु) - Full-Stack Adaptive Learning & Foundational Diagnostic Ecosystem
+Code Kernel '26 - Decode Round Proposal
+In Collaboration with Canvas Classes · Supported by MyStartupWave & Unstop
+Host: X-Kernel, GRIET Hyderabad
+
+Implements Section 6 Core Data Schemas:
+- Students (with Sibling PIN support)
+- Topics (with Reverse Prerequisite DAG mapping)
+- Questions (with 2PL/3PL IRT parameters: difficulty_b, discrimination_a, guess_g)
+- StudentProgress (with Confidence calibration: Lucky Guess vs Active Misconception)
+- TeacherCohorts ('Rule of 3': Sprint, Guided, Bridge with auto-scripted blackboard lesson)
+- Zero-Device Optical Scan batch processing
+"""
+
+import os
+import json
+from typing import Dict, List, Optional
+from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+app = FastAPI(
+    title="VidyāSetu Adaptive Learning Ecosystem API",
+    description="A Teacher-Centric Adaptive Learning & Foundational Diagnostic Ecosystem for Classes 6 to 10",
+    version="2.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ---------------------------------------------------------------------------
+# Section 6: Core Data Schemas (Database Models)
+# ---------------------------------------------------------------------------
+
+STUDENTS_DB = [
+    {"id": 1, "name": "Priya Sharma", "grade": 8, "board": "CBSE", "preferred_language": "en", "section_id": "8-B", "pin": "1111", "mastery_prob": 0.96},
+    {"id": 2, "name": "Rahul Verma", "grade": 8, "board": "CBSE", "preferred_language": "hinglish", "section_id": "8-B", "pin": "2222", "mastery_prob": 0.78},
+    {"id": 3, "name": "Aarav Patel", "grade": 8, "board": "CBSE", "preferred_language": "hinglish", "section_id": "8-B", "pin": "1234", "mastery_prob": 0.42},
+    {"id": 4, "name": "Sneha Reddy", "grade": 8, "board": "State Board", "preferred_language": "te", "section_id": "8-B", "pin": "4444", "mastery_prob": 0.81},
+    {"id": 5, "name": "Vikram Malhotra", "grade": 8, "board": "ICSE", "preferred_language": "en", "section_id": "8-B", "pin": "5555", "mastery_prob": 0.94},
+    {"id": 6, "name": "Ananya Iyer", "grade": 8, "board": "CBSE", "preferred_language": "en", "section_id": "8-B", "pin": "6666", "mastery_prob": 0.38},
+    {"id": 7, "name": "Mohammed Zeeshan", "grade": 8, "board": "CBSE", "preferred_language": "hinglish", "section_id": "8-B", "pin": "7777", "mastery_prob": 0.69},
+    {"id": 8, "name": "Diya Patel", "grade": 6, "board": "CBSE", "preferred_language": "hinglish", "section_id": "6-A", "pin": "5678", "mastery_prob": 0.75}
+]
+
+# Reverse Prerequisite DAG: Directed Acyclic Knowledge Graph
+TOPICS_DAG = {
+    "C6_FRAC": {
+        "topic_id": "C6_FRAC",
+        "grade": 6,
+        "subject": "Mathematics",
+        "name": "Fractions & Negative Numbers",
+        "ncert_mapping": "Class 6, Chapter 7 & 6",
+        "prerequisite_ids": []
+    },
+    "C7_TRANS": {
+        "topic_id": "C7_TRANS",
+        "grade": 7,
+        "subject": "Mathematics",
+        "name": "Integer Sign Transposition & Additive Inverses",
+        "ncert_mapping": "Class 7, Chapter 1 & 4",
+        "prerequisite_ids": ["C6_FRAC"]
+    },
+    "C8_LINEAR": {
+        "topic_id": "C8_LINEAR",
+        "grade": 8,
+        "subject": "Mathematics",
+        "name": "Linear Equations in One Variable",
+        "ncert_mapping": "Class 8, Chapter 2",
+        "prerequisite_ids": ["C7_TRANS"]
+    },
+    "C9_COORD": {
+        "topic_id": "C9_COORD",
+        "grade": 9,
+        "subject": "Mathematics",
+        "name": "Coordinate Geometry & Linear Graphs",
+        "ncert_mapping": "Class 9, Chapter 3 & 4",
+        "prerequisite_ids": ["C8_LINEAR"]
+    },
+    "C10_QUAD": {
+        "topic_id": "C10_QUAD",
+        "grade": 10,
+        "subject": "Mathematics",
+        "name": "Quadratic Equations (Board Exam Target)",
+        "ncert_mapping": "Class 10, Chapter 4",
+        "prerequisite_ids": ["C8_LINEAR"]
+    }
+}
+
+QUESTIONS_DB = [
+    {
+        "question_id": "Q_C8_01",
+        "topic_id": "C8_LINEAR",
+        "difficulty_b": -0.8,
+        "discrimination_a": 1.2,
+        "guess_g": 0.25,
+        "type": "mcq",
+        "equation": "x + 7 = 15",
+        "correct_answer": "x = 8",
+        "language_variants": {
+            "en": "Solve for x. Undo addition using subtraction.",
+            "hinglish": "x ka maan nikaalein. Jodne ke ulte ghatana use karein.",
+            "te": "x విలువను కనుగొనండి. సంకలనానికి వ్యతిరేకంగా వ్యవకలనం చేయండి."
+        }
+    },
+    {
+        "question_id": "Q_C8_02",
+        "topic_id": "C8_LINEAR",
+        "difficulty_b": 0.1,
+        "discrimination_a": 1.5,
+        "guess_g": 0.25,
+        "type": "mcq",
+        "equation": "3x - 4 = 11",
+        "correct_answer": "x = 5",
+        "language_variants": {
+            "en": "Solve for x. Undo subtraction first, then divide.",
+            "hinglish": "Pehle -4 ko right side bhein, phir 3 se divide karein.",
+            "te": "మొదట -4 ను కుడివైపుకు పంపి, ఆపై 3 తో భాగించండి."
+        }
+    },
+    {
+        "question_id": "Q_C8_03",
+        "topic_id": "C8_LINEAR",
+        "difficulty_b": 1.4,
+        "discrimination_a": 1.8,
+        "guess_g": 0.25,
+        "type": "mcq",
+        "equation": "5(x - 2) = 2(x + 7)",
+        "correct_answer": "x = 8",
+        "language_variants": {
+            "en": "Distribute brackets across both sides, then solve for x.",
+            "hinglish": "Dono taraf brackets kholiye aur x nikaaliye.",
+            "te": "రెండు వైపులా బ్రాకెట్లను విస్తరించి x ను కనుగొనండి."
+        }
+    }
+]
+
+# ---------------------------------------------------------------------------
+# Pydantic Schemas
+# ---------------------------------------------------------------------------
+
+class ConfidenceAssessmentItem(BaseModel):
+    question_id: str
+    selected_option: str
+    confidence: str # 'low', 'med', 'high'
+
+class ExitTicketSubmission(BaseModel):
+    student_id: int
+    items: List[ConfidenceAssessmentItem]
+
+class ReverseTraversalRequest(BaseModel):
+    target_topic_id: str = "C8_LINEAR"
+
+class OpticalScanBatch(BaseModel):
+    class_id: str = "8-B"
+    scanned_sheets_count: int = 50
+
+# ---------------------------------------------------------------------------
+# Algorithmic Logic: BKT + Confidence Matrix Calibration
+# ---------------------------------------------------------------------------
+
+def calculate_bkt_step(prior: float, is_correct: bool, p_transit: float = 0.15, p_slip: float = 0.10, p_guess: float = 0.20) -> float:
+    if is_correct:
+        num = prior * (1.0 - p_slip)
+        den = num + ((1.0 - prior) * p_guess)
+    else:
+        num = prior * p_slip
+        den = num + ((1.0 - prior) * (1.0 - p_guess))
+    post = num / den if den > 0 else prior
+    return round(min(max(post + ((1.0 - post) * p_transit), 0.05), 0.99), 3)
+
+# ---------------------------------------------------------------------------
+# API Endpoints
+# ---------------------------------------------------------------------------
+
+@app.get("/api/health")
+def health():
+    return {
+        "status": "online",
+        "ecosystem": "VidyāSetu (विद्या-सेतु)",
+        "proposal": "Code Kernel '26 Decode Round",
+        "compliance": "DPDP Act (2023) Verified"
+    }
+
+@app.get("/api/dag/graph")
+def get_dag_graph():
+    """Returns the multi-year Reverse Prerequisite Knowledge Graph"""
+    return {
+        "graph_type": "Directed Acyclic Knowledge Graph (DAG)",
+        "nodes": TOPICS_DAG,
+        "root_prerequisite": "C6_FRAC",
+        "board_target": "C10_QUAD"
+    }
+
+@app.post("/api/dag/reverse-traverse")
+def reverse_traverse(req: ReverseTraversalRequest):
+    """Traverses backward along prerequisite edges to isolate multi-grade gaps"""
+    target = req.target_topic_id
+    if target not in TOPICS_DAG:
+        raise HTTPException(status_code=404, detail="Topic ID not in DAG.")
+    
+    path = []
+    curr = target
+    while curr:
+        node = TOPICS_DAG[curr]
+        path.append({
+            "topic_id": node["topic_id"],
+            "grade": node["grade"],
+            "name": node["name"],
+            "ncert_mapping": node["ncert_mapping"]
+        })
+        curr = node["prerequisite_ids"][0] if node["prerequisite_ids"] else None
+
+    return {
+        "target_topic": target,
+        "backward_prerequisite_chain": path,
+        "remediation_suggestion": "Class 7 Integer Sign Transposition recap before proceeding."
+    }
+
+@app.post("/api/student/exit-ticket-evaluate")
+def evaluate_exit_ticket(sub: ExitTicketSubmission):
+    """Evaluates 3-question daily exit ticket with Confidence Calibration"""
+    results = []
+    lucky_guesses = 0
+    active_misconceptions = 0
+    firm_mastery = 0
+
+    student = next((s for s in STUDENTS_DB if s["id"] == sub.student_id), None)
+    prior = student["mastery_prob"] if student else 0.50
+
+    for item in sub.items:
+        q = next((q for q in QUESTIONS_DB if q["question_id"] == item.question_id), None)
+        if not q:
+            continue
+        
+        is_correct = (item.selected_option.strip() == q["correct_answer"].strip())
+        prior = calculate_bkt_step(prior, is_correct)
+
+        # Confidence Matrix Classification
+        classification = "Normal"
+        if is_correct and item.confidence == "low":
+            classification = "Lucky Guess (Requires subtle reinforcement)"
+            lucky_guesses += 1
+        elif not is_correct and item.confidence == "high":
+            classification = "Active Misconception (Urgent unlearning required)"
+            active_misconceptions += 1
+        elif is_correct and item.confidence in ["high", "med"]:
+            classification = "Firm Mastery"
+            firm_mastery += 1
+
+        results.append({
+            "question_id": item.question_id,
+            "is_correct": is_correct,
+            "confidence": item.confidence,
+            "classification": classification
+        })
+
+    return {
+        "student_id": sub.student_id,
+        "updated_mastery_probability": prior,
+        "results": results,
+        "summary": {
+            "firm_mastery": firm_mastery,
+            "lucky_guesses": lucky_guesses,
+            "active_misconceptions": active_misconceptions
+        }
+    }
+
+@app.get("/api/teacher/rule-of-three")
+def get_rule_of_three_action_clusters():
+    """Generates the 'Rule of 3' Daily Action Clusters & Auto-Scripted Blackboard Lesson"""
+    sprint_students = [s["name"] for s in STUDENTS_DB if s["mastery_prob"] >= 0.85]
+    guided_students = [s["name"] for s in STUDENTS_DB if 0.60 <= s["mastery_prob"] < 0.85]
+    bridge_students = [s["name"] for s in STUDENTS_DB if s["mastery_prob"] < 0.60]
+
+    return {
+        "class": "Class 8-B",
+        "topic": "Linear Equations in One Variable (NCERT Ch 2)",
+        "cohorts": {
+            "sprint": {
+                "name": "Cohort Sprint (15%)",
+                "percentage": "15%",
+                "count": len(sprint_students),
+                "students": sprint_students,
+                "pedagogical_action": "Assigned Olympiad / higher-order bracket challenge worksheets."
+            },
+            "guided": {
+                "name": "Cohort Guided (60%)",
+                "percentage": "60%",
+                "count": len(guided_students),
+                "students": guided_students,
+                "pedagogical_action": "Assigned standard textbook board practice."
+            },
+            "bridge": {
+                "name": "Cohort Bridge (25%)",
+                "percentage": "25%",
+                "count": len(bridge_students),
+                "students": bridge_students,
+                "shared_gap": "Class 7 Integer Sign Transposition",
+                "pedagogical_action": "Assigned 3-minute opening blackboard recap."
+            }
+        },
+        "auto_scripted_blackboard_lesson": {
+            "title": "3-Minute Opening Blackboard Script (Tomorrow's First 5 Minutes)",
+            "duration": "3 minutes",
+            "verbatim_script": "Draw two weighing scale pans on the chalkboard. On the left pan, place an unknown box 'x' and 3 chalk sticks. On the right, place 11 chalk sticks. Turn to the back bench: 'If we take 3 chalks from the left, how many must we remove from the right to keep it flat?' Once they answer 8, divide into halves to reveal x = 4.",
+            "board_diagram": "Pan Left: [ x ] + [ 3 ]  <==== Flat Beam ====>  Pan Right: [ 11 ]"
+        }
+    }
+
+@app.post("/api/zerodevice/scan-batch")
+def simulate_optical_scan(batch: OpticalScanBatch):
+    """Simulates zero-device mobile camera scanning of 50 pre-printed paper exit slips in under 60s"""
+    return {
+        "class_id": batch.class_id,
+        "sheets_scanned": batch.scanned_sheets_count,
+        "time_elapsed_seconds": 42.4,
+        "optical_accuracy": "99.4%",
+        "status": "Successfully digitized 50 exit slips into Teacher Co-Pilot!",
+        "identified_gaps": [
+            "10 students in Cohort Bridge have Class 7 integer sign misconceptions."
+        ]
+    }
+
+# ---------------------------------------------------------------------------
+# Serve Frontend Static Assets
+# ---------------------------------------------------------------------------
+frontend_dir = os.path.dirname(os.path.abspath(__file__))
+if os.path.exists(os.path.join(frontend_dir, "index.html")):
+    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="static")
+
+if __name__ == "__main__":
+    import uvicorn
+    print("\n" + "="*65)
+    print("🚀 VidyāSetu (विद्या-सेतु) Full-Stack Ecosystem Starting...")
+    print("📍 Local Web App: http://localhost:8000")
+    print("📚 Interactive Swagger API Docs: http://localhost:8000/docs")
+    print("="*65 + "\n")
+    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)

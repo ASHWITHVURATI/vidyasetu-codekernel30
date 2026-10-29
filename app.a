@@ -1,0 +1,819 @@
+/**
+ * VidyāSetu (विद्या-सेतु) - Full-Stack Client Application
+ * Code Kernel '26 - Decode Round Proposal
+ * In collaboration with Canvas Classes · Supported by MyStartupWave & Unstop
+ * Host: X-Kernel, GRIET Hyderabad
+ */
+
+// Application State
+const state = {
+  currentTab: 'home',
+  activeLearnStep: 'learn',
+  learnModality: 'analogy', // 'analogy', 'audio', 'comic'
+  language: 'en', // 'en', 'hinglish', 'te'
+  lowDataMode: false,
+  
+  // Shared Family Phone Profiles
+  activeProfile: 'aarav', // 'aarav' (Class 8) or 'diya' (Class 6)
+  profiles: {
+    aarav: { name: "Aarav Patel", grade: "Class 8", roll: "8B-03", pin: "1234", board: "CBSE" },
+    diya: { name: "Diya Patel", grade: "Class 6", roll: "6A-14", pin: "5678", board: "CBSE" }
+  },
+
+  // Equation Balance Interactive
+  equation: {
+    leftX: 2,
+    leftConst: 3,
+    rightConst: 11,
+    solvedX: 4
+  },
+
+  // Solve Stage & Time-Travel
+  solveLevel: 2,
+  revealedHints: 0,
+  timeTravelActive: false,
+
+  // Confidence-Calibrated Exit Ticket
+  testIndex: 0,
+  testScore: 0,
+  selectedConfidence: 'high', // 'low', 'med', 'high'
+  testResults: [],
+
+  // Teacher "Rule of 3" Cohorts
+  cohorts: {
+    sprint: ["Priya Sharma (8B-01)", "Vikram Malhotra (8B-05)", "Riya Sen (8B-12)", "Aditya Roy (8B-18)", "Kavya Nair (8B-22)", "Aryan Singh (8B-30)"],
+    guided: ["Rahul Verma (8B-02)", "Sneha Reddy (8B-04)", "Mohammed Zeeshan (8B-07)", "Divya Nambiar (8B-08)", "Tanvi Joshi (8B-09)", "Manish Kumar (8B-10)", "Neha Gupta (8B-11)", "Pranav Desai (8B-13)", "+ 18 other students"],
+    bridge: ["Aarav Patel (8B-03)", "Ananya Iyer (8B-06)", "Deepak Rawat (8B-14)", "Suresh G (8B-19)", "Pooja Hegde (8B-25)", "Karan Shah (8B-28)", "Varun Tej (8B-33)", "Simran Kaur (8B-37)", "Rakesh Meena (8B-40)", "Fatima Bi (8B-42)"]
+  }
+};
+
+// Exit Ticket Diagnostic Pool (with Confidence Calibration)
+const exitTicketPool = [
+  {
+    id: 1,
+    grade: 8,
+    concept: "Inverse Operations",
+    question: "If 4y = 28, which inverse operation isolates y on the left pan?",
+    options: ["Add 4 to both sides", "Subtract 4 from both sides", "Divide both sides by 4", "Multiply both sides by 4"],
+    correctIdx: 2,
+    explanation: "Multiplication and division are inverse operations. Since y is multiplied by 4, you must divide both sides by 4."
+  },
+  {
+    id: 2,
+    grade: 8,
+    concept: "Integer Sign Transposition (Class 7 Prerequisite)",
+    question: "Solve: -3 + x = 8. What is the value of x?",
+    options: ["x = 5", "x = 11", "x = -11", "x = -5"],
+    correctIdx: 1,
+    explanation: "Transposing -3 to the right side changes its sign to +3: x = 8 + 3 = 11."
+  },
+  {
+    id: 3,
+    grade: 8,
+    concept: "Cricket Run-Rate Algebra",
+    question: "India needs 60 runs in 10 overs. If current run rate is 'r' and they need 2 runs per ball on average, what equation represents total runs needed?",
+    options: ["10 × r = 60", "r / 10 = 60", "r + 10 = 60", "60 - r = 10"],
+    correctIdx: 0,
+    explanation: "Total runs = Overs × Required Run Rate. 10 × r = 60."
+  }
+];
+
+// Content Translations & Vernacular Support
+const i18n = {
+  en: {
+    heroTitle: "A Teacher-Centric Adaptive Learning & Foundational Diagnostic Ecosystem",
+    heroDesc: "In classes of 45-60 students, one median pace silently leaves students behind. VidyāSetu adapts across Learn, Solve, and Test using a Reverse Prerequisite Knowledge Graph while putting school teachers in command.",
+    audioTranscript: "Namaste! In Cricket, when India chases 240 runs and has 180 runs in 40 overs, the remaining runs needed is an algebraic equation: 180 + 10r = 240. Subtract 180 from both sides: 10r = 60, so required run rate r = 6 runs per over!",
+    blackboardScript: "Today's opening 3-minute bridge: Draw two weighing pans on the board. Put a mystery box 'x' and 3 chalk pieces on the left, and 11 chalk pieces on the right. Ask the back bench: 'If we take 3 chalks from left, how many must we remove from right to keep it flat?'"
+  },
+  hinglish: {
+    heroTitle: "Har Bachhe Ki Speed Alag Hai: Seekhein Apni Pace Par",
+    heroDesc: "45-60 bachho ki class me ek pace se padhane par silent gaps ban jaate hain. VidyāSetu Learn, Solve aur Test teeno me adapt karta hai aur school teacher ko full command deta hai.",
+    audioTranscript: "Namaste! Cricket me jab India ko 240 chase karna hai aur 40 overs me 180 ban gaye, to remaining runs ek equation hai: 180 + 10r = 240. Dono taraf se 180 minus karein: 10r = 60, yaani required run rate r = 6 runs per over!",
+    blackboardScript: "Aane wale 3 minute me blackboard par taraazu draw karein. Left pan me mystery dabba 'x' aur 3 chalk rakhein, right me 11 chalk. Class se poochein: 'Agar left se 3 chalk hatayein, to balance rakhne ke liye right se kitne hatane padenge?'"
+  },
+  te: {
+    heroTitle: "భారతీయ తరగతులకు ప్రత్యేకించిన అనుకూల అభ్యాస వేదిక",
+    heroDesc: "45-60 మంది విద్యార్థులున్న తరగతిలో ఒకే వేగంతో బోధిస్తే పునాది లోపాలు ఏర్పడతాయి. విద్యాసేతు ఉపాధ్యాయులను కేంద్రంగా ఉంచి నేర్చుకోవడం, సాధన మరియు పరీక్షలలో సమగ్ర మార్పు తెస్తుంది.",
+    audioTranscript: "నమస్కారం! క్రికెట్‌లో 240 పరుగుల లక్ష్య ఛేదనలో 40 ఓవర్లలో 180 పరుగులు చేస్తే, మిగిలిన ఓవర్లలో చేయాల్సిన సమీకరణం: 180 + 10r = 240. రెండు వైపులా 180 తీసివేస్తే 10r = 60, కాబట్టి అవసరమైన రన్ రేట్ r = 6!",
+    blackboardScript: "బోర్డుపై ఒక త్రాసు చిత్రాన్ని గీయండి. ఎడమవైపు 'x' మరియు 3 సుద్దముక్కలు, కుడివైపు 11 సుద్దముక్కలు వేయండి. విద్యార్థులను అడగండి: 'ఎడమవైపు 3 తీసివేస్తే సమతుల్యత కోసం కుడివైపు ఎన్ని తీసివేయాలి?'"
+  }
+};
+
+// Lifecycle Initialization
+document.addEventListener('DOMContentLoaded', () => {
+  setupNavigation();
+  setupSiblingProfileSwitcher();
+  setupLearnModalities();
+  setupInteractiveScale();
+  setupSolveStage();
+  setupConfidenceSlider();
+  setupExitTicket();
+  setupTeacherDashboard();
+  setupZeroDeviceScanner();
+  setupAccordion();
+  
+  // Render initial visual canvases
+  setTimeout(() => {
+    drawKnowledgeDAG();
+    drawCohortBarChart();
+  }, 100);
+});
+
+// Navigation Handling
+function setupNavigation() {
+  const tabBtns = document.querySelectorAll('.nav-tab-btn');
+  const tabContents = document.querySelectorAll('.tab-content');
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetTab = btn.getAttribute('data-tab');
+      state.currentTab = targetTab;
+
+      tabBtns.forEach(b => b.classList.remove('active'));
+      tabContents.forEach(c => c.classList.remove('active'));
+
+      btn.classList.add('active');
+      const activeContent = document.getElementById(`tab-${targetTab}`);
+      if (activeContent) activeContent.classList.add('active');
+
+      if (targetTab === 'graph' || targetTab === 'home') {
+        setTimeout(drawKnowledgeDAG, 50);
+      }
+      if (targetTab === 'teacher') {
+        setTimeout(drawCohortBarChart, 50);
+      }
+    });
+  });
+
+  // Language Switcher
+  const langSelect = document.getElementById('lang-select');
+  if (langSelect) {
+    langSelect.addEventListener('change', (e) => {
+      state.language = e.target.value;
+      updateLanguageTexts();
+    });
+  }
+
+  // Low Data Mode
+  const lowDataBtn = document.getElementById('toggle-low-data');
+  if (lowDataBtn) {
+    lowDataBtn.addEventListener('click', () => {
+      state.lowDataMode = !state.lowDataMode;
+      document.body.classList.toggle('low-data-mode', state.lowDataMode);
+      lowDataBtn.classList.toggle('active', state.lowDataMode);
+      lowDataBtn.innerHTML = state.lowDataMode ? '<span>📶 2G/Low Data: ON</span>' : '<span>⚡ Standard Data</span>';
+    });
+  }
+}
+
+function updateLanguageTexts() {
+  const langObj = i18n[state.language] || i18n.en;
+  const hTitle = document.getElementById('hero-title-text');
+  const hDesc = document.getElementById('hero-desc-text');
+  const bbText = document.getElementById('blackboard-script-content');
+
+  if (hTitle) hTitle.innerHTML = langObj.heroTitle;
+  if (hDesc) hDesc.textContent = langObj.heroDesc;
+  if (bbText) bbText.textContent = langObj.blackboardScript;
+}
+
+// Shared Family Phone Switcher (PIN-Protected)
+function setupSiblingProfileSwitcher() {
+  const siblingBtns = document.querySelectorAll('.sibling-pill');
+  siblingBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const profileKey = btn.getAttribute('data-profile');
+      if (profileKey === state.activeProfile) return;
+
+      const p = state.profiles[profileKey];
+      const pin = prompt(`Enter 4-digit PIN for ${p.name} (${p.grade}):`, p.pin);
+      if (pin === p.pin) {
+        state.activeProfile = profileKey;
+        siblingBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        const badgeEl = document.getElementById('active-profile-badge');
+        if (badgeEl) badgeEl.textContent = `${p.name} (${p.grade} - ${p.board})`;
+
+        alert(`Switched to ${p.name}'s profile. Offline module loaded from IndexedDB!`);
+      } else if (pin !== null) {
+        alert("Incorrect PIN. Switching cancelled.");
+      }
+    });
+  });
+}
+
+// Adaptive LEARN Modality Switching (Analogy, Audio, Comic)
+function setupLearnModalities() {
+  const modBtns = document.querySelectorAll('.learn-modality-btn');
+  const modPanels = document.querySelectorAll('.modality-panel');
+
+  modBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const modality = btn.getAttribute('data-modality');
+      state.learnModality = modality;
+
+      modBtns.forEach(b => b.classList.remove('active'));
+      modPanels.forEach(p => p.style.display = 'none');
+
+      btn.classList.add('active');
+      const activeP = document.getElementById(`modality-panel-${modality}`);
+      if (activeP) activeP.style.display = 'block';
+    });
+  });
+
+  // Bilingual 60-Second Micro-Audio Player
+  const audioBtn = document.getElementById('btn-play-micro-audio');
+  if (audioBtn) {
+    audioBtn.addEventListener('click', () => {
+      if ('speechSynthesis' in window) {
+        const text = i18n[state.language]?.audioTranscript || i18n.en.audioTranscript;
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.95;
+        utterance.lang = state.language === 'te' ? 'te-IN' : (state.language === 'hinglish' ? 'hi-IN' : 'en-IN');
+        window.speechSynthesis.speak(utterance);
+        audioBtn.textContent = "🔊 Playing 60s Micro-Note...";
+        utterance.onend = () => { audioBtn.textContent = "▶ Play 60s Micro-Audio Note"; };
+      } else {
+        alert("Audio playback not supported in browser.");
+      }
+    });
+  }
+
+  // Student Sub-stepper (Learn -> Solve -> Test)
+  const stepBtns = document.querySelectorAll('.step-btn');
+  const stepSections = document.querySelectorAll('.step-section');
+
+  stepBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const step = btn.getAttribute('data-step');
+      state.activeLearnStep = step;
+
+      stepBtns.forEach(b => b.classList.remove('active'));
+      stepSections.forEach(s => s.classList.remove('active'));
+
+      btn.classList.add('active');
+      const activeS = document.getElementById(`step-section-${step}`);
+      if (activeS) activeS.classList.add('active');
+    });
+  });
+}
+
+// Interactive Weighing Scale
+function setupInteractiveScale() {
+  const panLeft = document.getElementById('scale-pan-left');
+  const panRight = document.getElementById('scale-pan-right');
+  const beam = document.getElementById('scale-beam-bar');
+  const statusMsg = document.getElementById('scale-status-message');
+
+  const btnSub3 = document.getElementById('scale-sub-3');
+  const btnDiv2 = document.getElementById('scale-div-2');
+  const btnReset = document.getElementById('scale-reset');
+
+  function renderScale() {
+    if (!panLeft || !panRight) return;
+
+    panLeft.innerHTML = `
+      <div style="font-size:0.75rem; color:#64748b; font-weight:700;">LEFT PAN</div>
+      <div style="display:flex; gap:4px; flex-wrap:wrap; justify-content:center;">
+        ${Array(state.equation.leftX).fill('<span class="pan-item x-box">x</span>').join('')}
+        ${state.equation.leftConst > 0 ? `<span class="pan-item weight-box">+${state.equation.leftConst}</span>` : ''}
+      </div>
+    `;
+
+    panRight.innerHTML = `
+      <div style="font-size:0.75rem; color:#64748b; font-weight:700;">RIGHT PAN</div>
+      <div style="display:flex; gap:4px; flex-wrap:wrap; justify-content:center;">
+        <span class="pan-item weight-box" style="font-size:1.1rem; padding:6px 12px;">⚖ ${state.equation.rightConst}</span>
+      </div>
+    `;
+
+    const leftVal = state.equation.leftX * state.equation.solvedX + state.equation.leftConst;
+    const rightVal = state.equation.rightConst;
+
+    if (leftVal === rightVal) {
+      beam.style.transform = "rotate(0deg)";
+      if (state.equation.leftX === 1 && state.equation.leftConst === 0) {
+        statusMsg.innerHTML = `<span style="color:#10b981; font-weight:800;">🎉 Perfect! x is isolated: x = ${state.equation.rightConst}!</span>`;
+      } else {
+        statusMsg.innerHTML = `<span style="color:#4f46e5; font-weight:700;">⚖ Scale is balanced! Current: ${state.equation.leftX}x + ${state.equation.leftConst} = ${state.equation.rightConst}</span>`;
+      }
+    } else {
+      const angle = leftVal > rightVal ? -8 : 8;
+      beam.style.transform = `rotate(${angle}deg)`;
+      statusMsg.innerHTML = `<span style="color:#ef4444; font-weight:700;">⚠ Scale tilted! Left and right must stay equal.</span>`;
+    }
+  }
+
+  if (btnSub3) {
+    btnSub3.addEventListener('click', () => {
+      if (state.equation.leftConst === 3) {
+        state.equation.leftConst = 0;
+        state.equation.rightConst -= 3;
+        btnSub3.disabled = true;
+        btnDiv2.disabled = false;
+        renderScale();
+      }
+    });
+  }
+
+  if (btnDiv2) {
+    btnDiv2.addEventListener('click', () => {
+      if (state.equation.leftX === 2) {
+        state.equation.leftX = 1;
+        state.equation.rightConst /= 2;
+        btnDiv2.disabled = true;
+        renderScale();
+      }
+    });
+  }
+
+  if (btnReset) {
+    btnReset.addEventListener('click', () => {
+      state.equation.leftX = 2;
+      state.equation.leftConst = 3;
+      state.equation.rightConst = 11;
+      btnSub3.disabled = false;
+      btnDiv2.disabled = true;
+      renderScale();
+    });
+  }
+
+  renderScale();
+}
+
+// Adaptive SOLVE Stage & "Time-Travel" Prerequisite Traversal
+function setupSolveStage() {
+  loadSolveTier(state.solveLevel);
+
+  const hintBtn = document.getElementById('btn-reveal-hint');
+  if (hintBtn) {
+    hintBtn.addEventListener('click', () => {
+      if (state.revealedHints < 3) {
+        state.revealedHints++;
+        const el = document.getElementById(`hint-${state.revealedHints}`);
+        if (el) el.classList.add('revealed');
+        hintBtn.textContent = state.revealedHints === 3 ? "All hints revealed" : `Get Next Hint (${3 - state.revealedHints} left)`;
+      }
+    });
+  }
+}
+
+function loadSolveTier(level) {
+  state.solveLevel = level;
+  state.revealedHints = 0;
+
+  const questions = {
+    1: {
+      equation: "x + 7 = 15",
+      prompt: "Solve for x. Undo addition using inverse subtraction.",
+      correct: "x = 8",
+      options: ["x = 8", "x = 22", "x = 105", "x = 2.14"],
+      hints: [
+        "Hint 1: What is the inverse of adding 7?",
+        "Hint 2: Subtract 7 from both sides: x = 15 - 7.",
+        "Hint 3: 15 - 7 = 8. So x = 8."
+      ]
+    },
+    2: {
+      equation: "3x - 4 = 11",
+      prompt: "Solve for x. Step 1: Undo subtraction. Step 2: Undo multiplication.",
+      correct: "x = 5",
+      options: ["x = 5", "x = 2.33", "x = 7", "x = 18"],
+      hints: [
+        "Hint 1: First isolate 3x. What is the opposite of -4?",
+        "Hint 2: Add 4 to both sides: 3x = 11 + 4 = 15.",
+        "Hint 3: Divide both sides by 3: x = 15 / 3 = 5."
+      ]
+    },
+    3: {
+      equation: "5(x - 2) = 2(x + 7)",
+      prompt: "Solve for x. Distribute across brackets, then group variables.",
+      correct: "x = 8",
+      options: ["x = 8", "x = 4", "x = 12", "x = 6"],
+      hints: [
+        "Hint 1: Expand brackets: 5x - 10 = 2x + 14.",
+        "Hint 2: Subtract 2x from both sides: 3x - 10 = 14.",
+        "Hint 3: Add 10: 3x = 24 ⇒ x = 8."
+      ]
+    }
+  };
+
+  const q = questions[level];
+  const eqDisp = document.getElementById('solve-equation-display');
+  const promptEl = document.getElementById('solve-prompt-text');
+  const optsContainer = document.getElementById('solve-options-container');
+  const timeTravelBox = document.getElementById('time-travel-box');
+
+  if (eqDisp) eqDisp.textContent = q.equation;
+  if (promptEl) promptEl.textContent = q.prompt;
+  if (timeTravelBox) timeTravelBox.classList.remove('active');
+
+  for (let i = 1; i <= 3; i++) {
+    const h = document.getElementById(`hint-${i}`);
+    if (h) {
+      h.classList.remove('revealed');
+      h.textContent = q.hints[i - 1];
+    }
+  }
+
+  if (optsContainer) {
+    optsContainer.innerHTML = '';
+    q.options.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.innerHTML = `<span>🔘</span> <span>${opt}</span>`;
+      btn.addEventListener('click', () => {
+        const isCorrect = opt === q.correct;
+        optsContainer.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+
+        if (isCorrect) {
+          btn.classList.add('correct');
+          alert("🎉 Correct answer! Step-by-step reasoning verified.");
+          if (state.solveLevel < 3) {
+            setTimeout(() => loadSolveTier(state.solveLevel + 1), 1000);
+          }
+        } else {
+          btn.classList.add('incorrect');
+          // Trigger "Time-Travel" Prerequisite Traversal if in Tier 2
+          if (level === 2 && opt === "x = 2.33") {
+            triggerTimeTravelRemediation("Class 7: Integer Sign Transposition");
+          } else {
+            alert("Misconception detected! Check the hint ladder to repair understanding.");
+          }
+        }
+      });
+      optsContainer.appendChild(btn);
+    });
+  }
+}
+
+// "Time-Travel" Prerequisite Traversal
+function triggerTimeTravelRemediation(prereqTopic) {
+  const box = document.getElementById('time-travel-box');
+  if (!box) return;
+
+  box.classList.add('active');
+  box.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h4 style="font-weight:800; color:#86198f; font-size:1.05rem;">⏳ Time-Travel Prerequisite Traversal Activated!</h4>
+      <span class="badge badge-warning">Root-Cause Remediation</span>
+    </div>
+    <p style="color:#701a75; font-size:0.88rem; margin:8px 0;">
+      Our Reverse Knowledge Graph detected that your error in <em>3x - 4 = 11</em> isn't an algebra failure: you stumbled on <strong>${prereqTopic}</strong>!
+    </p>
+    <div style="background:#ffffff; padding:12px; border-radius:8px; border:1px solid #f0abfc; font-size:0.85rem; color:#4a044e;">
+      <strong>2-Minute Quick Repair:</strong> When moving a negative number across the equals sign, its sign FLIPS: -4 becomes +4. So 11 + 4 = 15!
+    </div>
+    <div style="margin-top:12px; display:flex; gap:10px;">
+      <button class="btn btn-primary btn-sm" onclick="loadSolveTier(1)">Practice Class 7 Foundational Bridge</button>
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('time-travel-box').classList.remove('active')">Dismiss & Retry</button>
+    </div>
+  `;
+}
+
+// Confidence Slider Setup
+function setupConfidenceSlider() {
+  const confBtns = document.querySelectorAll('.conf-btn');
+  confBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      confBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.selectedConfidence = btn.getAttribute('data-conf');
+    });
+  });
+}
+
+// Exit Ticket Diagnostic Assessment (Confidence-Calibrated)
+function setupExitTicket() {
+  renderExitTicketQuestion();
+}
+
+function renderExitTicketQuestion() {
+  const container = document.getElementById('exit-ticket-container');
+  if (!container) return;
+
+  if (state.testIndex >= exitTicketPool.length) {
+    // Show summary with Confidence-Calibrated Matrix
+    let luckyGuesses = 0;
+    let activeMisconceptions = 0;
+    let firmMastery = 0;
+
+    state.testResults.forEach(r => {
+      if (r.isCorrect && r.conf === 'low') luckyGuesses++;
+      else if (!r.isCorrect && r.conf === 'high') activeMisconceptions++;
+      else if (r.isCorrect && (r.conf === 'high' || r.conf === 'med')) firmMastery++;
+    });
+
+    container.innerHTML = `
+      <div style="text-align:center; padding:20px;">
+        <div style="font-size:2.5rem; margin-bottom:8px;">🎯</div>
+        <h3 style="font-weight:800; color:#1e1b4b; font-size:1.3rem;">Daily 3-Question Exit Ticket Completed!</h3>
+        <p style="color:#64748b; font-size:0.9rem; margin-top:4px;">Diagnostic data calibrated into the teacher's classroom co-pilot.</p>
+
+        <!-- Confidence Matrix Summary Cards -->
+        <div class="grid-3" style="margin:20px 0; text-align:left;">
+          <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:12px;">
+            <div style="font-weight:800; color:#065f46; font-size:0.9rem;">Firm Mastery</div>
+            <div style="font-size:1.4rem; font-weight:800; color:#10b981;">${firmMastery} / 3</div>
+            <div style="font-size:0.75rem; color:#047857;">Correct + High Confidence</div>
+          </div>
+          <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:12px;">
+            <div style="font-weight:800; color:#92400e; font-size:0.9rem;">Lucky Guesses</div>
+            <div style="font-size:1.4rem; font-weight:800; color:#f59e0b;">${luckyGuesses}</div>
+            <div style="font-size:0.75rem; color:#b45309;">Correct + Low Confidence (Subtle reinforcement)</div>
+          </div>
+          <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:12px;">
+            <div style="font-weight:800; color:#991b1b; font-size:0.9rem;">Active Misconceptions</div>
+            <div style="font-size:1.4rem; font-weight:800; color:#ef4444;">${activeMisconceptions}</div>
+            <div style="font-size:0.75rem; color:#b91c1c;">Incorrect + High Confidence (Unlearning required!)</div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="btn-restart-exit-ticket">Retake Daily Exit Ticket</button>
+      </div>
+    `;
+
+    const restartBtn = document.getElementById('btn-restart-exit-ticket');
+    if (restartBtn) {
+      restartBtn.addEventListener('click', () => {
+        state.testIndex = 0;
+        state.testScore = 0;
+        state.testResults = [];
+        renderExitTicketQuestion();
+      });
+    }
+    return;
+  }
+
+  const q = exitTicketPool[state.testIndex];
+  container.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <span class="badge badge-primary">Question ${state.testIndex + 1} of ${exitTicketPool.length}</span>
+      <span style="font-size:0.82rem; font-weight:700; color:#6366f1;">Topic: ${q.concept}</span>
+    </div>
+    <div style="font-size:1.05rem; font-weight:700; color:#1e293b; margin-bottom:14px;">
+      ${q.question}
+    </div>
+    <div class="options-grid" id="exit-options-grid"></div>
+
+    <div class="confidence-box">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:0.82rem; font-weight:700; color:#334155;">Confidence Calibration: How sure are you?</span>
+        <div class="confidence-btn-group">
+          <button class="conf-btn conf-low" data-conf="low">Low (Guessing)</button>
+          <button class="conf-btn conf-med" data-conf="med">Medium</button>
+          <button class="conf-btn conf-high active" data-conf="high">High (Sure)</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="exit-feedback-box" style="display:none; margin-top:12px;"></div>
+  `;
+
+  // Attach confidence button listeners
+  setupConfidenceSlider();
+
+  const grid = document.getElementById('exit-options-grid');
+  const feedback = document.getElementById('exit-feedback-box');
+
+  q.options.forEach((opt, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span>${String.fromCharCode(65 + idx)}.</span> <span>${opt}</span>`;
+    btn.addEventListener('click', () => {
+      const isCorrect = idx === q.correctIdx;
+      if (isCorrect) state.testScore++;
+
+      state.testResults.push({
+        questionId: q.id,
+        isCorrect,
+        conf: state.selectedConfidence
+      });
+
+      grid.querySelectorAll('.option-btn').forEach((b, i) => {
+        b.disabled = true;
+        if (i === q.correctIdx) b.classList.add('correct');
+        else if (i === idx) b.classList.add('incorrect');
+      });
+
+      let diagNudge = "";
+      if (isCorrect && state.selectedConfidence === 'low') {
+        diagNudge = "⚠️ Correct, but flagged as a Lucky Guess (Low Confidence). We will reinforce this!";
+      } else if (!isCorrect && state.selectedConfidence === 'high') {
+        diagNudge = "🚨 Active Misconception Flagged! You were sure, but the fundamental logic requires unlearning.";
+      } else {
+        diagNudge = isCorrect ? "✔ Solid conceptual grasp!" : "✖ Concept missed. Reviewing in tomorrow's 3-minute bridge.";
+      }
+
+      feedback.style.display = 'block';
+      feedback.innerHTML = `
+        <div style="padding:10px 14px; background:${isCorrect ? '#ecfdf5' : '#fef2f2'}; border-radius:8px; font-size:0.86rem; color:${isCorrect ? '#065f46' : '#991b1b'};">
+          <strong>${diagNudge}</strong><br>
+          <span style="font-size:0.82rem; color:#475569;">${q.explanation}</span>
+        </div>
+        <button class="btn btn-primary btn-sm" id="btn-next-exit" style="margin-top:10px;">Next Question ➔</button>
+      `;
+
+      const nextBtn = document.getElementById('btn-next-exit');
+      if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+          state.testIndex++;
+          renderExitTicketQuestion();
+        });
+      }
+    });
+    grid.appendChild(btn);
+  });
+}
+
+// Teacher Dashboard ("Rule of 3" Cohort Management)
+function setupTeacherDashboard() {
+  const btnGenWorksheet = document.getElementById('btn-generate-worksheet');
+  if (btnGenWorksheet) {
+    btnGenWorksheet.addEventListener('click', () => window.print());
+  }
+
+  // Teacher-in-the-loop manual override prompt
+  const overrideBtns = document.querySelectorAll('.cohort-override-btn');
+  overrideBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const studentName = prompt("Enter student name to reassign cohort:", "Aarav Patel (8B-03)");
+      if (studentName) {
+        alert(`Teacher Authority Override: Reassigned ${studentName} to new cohort!`);
+      }
+    });
+  });
+}
+
+// Zero-Device Classroom Mode (Paper-to-Digital Optical Scan Simulator)
+function setupZeroDeviceScanner() {
+  const startScanBtn = document.getElementById('btn-start-scan');
+  const laserLine = document.getElementById('scan-laser');
+  const scanStatus = document.getElementById('scan-status-text');
+  const scanCounter = document.getElementById('scan-counter');
+
+  if (startScanBtn) {
+    startScanBtn.addEventListener('click', () => {
+      startScanBtn.disabled = true;
+      laserLine.style.display = 'block';
+      scanStatus.textContent = "Scanning 50 pre-printed paper exit slips via OpenCV / Tesseract OCR...";
+      
+      let count = 0;
+      const interval = setInterval(() => {
+        count += 5;
+        if (scanCounter) scanCounter.textContent = `${count} / 50 Sheets Processed`;
+        if (count >= 50) {
+          clearInterval(interval);
+          laserLine.style.display = 'none';
+          scanStatus.innerHTML = `<span style="color:#10b981; font-weight:800;">✔ 50/50 Paper Exit Slips Scanned & Digitized in 42 seconds!</span>`;
+          startScanBtn.disabled = false;
+          startScanBtn.textContent = "Scan Again";
+          alert("Optical Recognition Complete: Class 8-B data synchronized into the Teacher Co-Pilot!");
+        }
+      }, 250);
+    });
+  }
+}
+
+// Interactive Directed Acyclic Knowledge Graph (DAG) Canvas
+function drawKnowledgeDAG() {
+  const canvas = document.getElementById('dag-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width = canvas.parentElement.clientWidth || 800;
+  const h = canvas.height = 280;
+
+  ctx.clearRect(0, 0, w, h);
+
+  const nodes = [
+    { id: "C6_Frac", label: "Class 6: Fractions & Signs", x: w * 0.12, y: h * 0.5, grade: "Class 6", status: "Root Prereq", color: "#f59e0b" },
+    { id: "C7_Trans", label: "Class 7: Integer Transposition", x: w * 0.35, y: h * 0.5, grade: "Class 7", status: "Prerequisite", color: "#ef4444" },
+    { id: "C8_Linear", label: "Class 8: Linear Equations", x: w * 0.60, y: h * 0.5, grade: "Class 8 (Active)", status: "Target Concept", color: "#4f46e5" },
+    { id: "C9_Coord", label: "Class 9: Coordinate Geometry", x: w * 0.82, y: h * 0.3, grade: "Class 9", status: "Downstream", color: "#64748b" },
+    { id: "C10_Quad", label: "Class 10: Quadratic Equations", x: w * 0.82, y: h * 0.7, grade: "Class 10 Board", status: "High-Stakes", color: "#64748b" }
+  ];
+
+  const edges = [
+    [0, 1],
+    [1, 2],
+    [2, 3],
+    [2, 4]
+  ];
+
+  // Draw Edges with arrowheads
+  edges.forEach(([fromIdx, toIdx]) => {
+    const from = nodes[fromIdx];
+    const to = nodes[toIdx];
+
+    ctx.beginPath();
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 3;
+    ctx.moveTo(from.x, from.y);
+    ctx.lineTo(to.x, to.y);
+    ctx.stroke();
+
+    // Arrowhead
+    const angle = Math.atan2(to.y - from.y, to.x - from.x);
+    const arrowLen = 10;
+    ctx.beginPath();
+    ctx.fillStyle = '#94a3b8';
+    ctx.moveTo(to.x - 30 * Math.cos(angle), to.y - 30 * Math.sin(angle));
+    ctx.lineTo(to.x - 30 * Math.cos(angle) - arrowLen * Math.cos(angle - Math.PI / 6), to.y - 30 * Math.sin(angle) - arrowLen * Math.sin(angle - Math.PI / 6));
+    ctx.lineTo(to.x - 30 * Math.cos(angle) - arrowLen * Math.cos(angle + Math.PI / 6), to.y - 30 * Math.sin(angle) - arrowLen * Math.sin(angle + Math.PI / 6));
+    ctx.fill();
+  });
+
+  // Draw Reverse Traversal Line (Highlighted in dashed fuchsia)
+  ctx.beginPath();
+  ctx.setLineDash([6, 6]);
+  ctx.strokeStyle = '#e879f9';
+  ctx.lineWidth = 3;
+  ctx.moveTo(nodes[2].x, nodes[2].y);
+  ctx.lineTo(nodes[1].x, nodes[1].y);
+  ctx.lineTo(nodes[0].x, nodes[0].y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Draw Nodes
+  nodes.forEach((n) => {
+    ctx.fillStyle = n.color;
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, 22, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Text labels
+    ctx.fillStyle = '#0f172a';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(n.label, n.x, n.y - 30);
+
+    ctx.fillStyle = '#64748b';
+    ctx.font = '9px sans-serif';
+    ctx.fillText(n.status, n.x, n.y + 36);
+  });
+}
+
+function drawCohortBarChart() {
+  const canvas = document.getElementById('cohort-bar-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width = canvas.parentElement.clientWidth || 450;
+  const h = canvas.height = 160;
+
+  ctx.clearRect(0, 0, w, h);
+
+  const stats = [
+    { label: "Bridge (25%)", count: 10, color: "#ef4444" },
+    { label: "Guided (60%)", count: 26, color: "#3b82f6" },
+    { label: "Sprint (15%)", count: 6, color: "#10b981" }
+  ];
+
+  const barWidth = 55;
+  const gap = (w - (stats.length * barWidth)) / (stats.length + 1);
+
+  stats.forEach((st, idx) => {
+    const x = gap + idx * (barWidth + gap);
+    const barHeight = (st.count / 30) * (h - 40);
+    const y = h - 25 - barHeight;
+
+    ctx.fillStyle = st.color;
+    ctx.beginPath();
+    ctx.roundRect(x, y, barWidth, barHeight, [6, 6, 0, 0]);
+    ctx.fill();
+
+    ctx.fillStyle = '#0f172a';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${st.count} Students`, x + barWidth / 2, y - 6);
+
+    ctx.fillStyle = '#64748b';
+    ctx.font = '10px sans-serif';
+    ctx.fillText(st.label, x + barWidth / 2, h - 8);
+  });
+}
+
+// Accordion Setup
+function setupAccordion() {
+  const deckHeaders = document.querySelectorAll('.deck-header');
+  deckHeaders.forEach(hdr => {
+    hdr.addEventListener('click', () => {
+      const body = hdr.nextElementSibling;
+      const isOpen = body.classList.contains('active');
+
+      deckHeaders.forEach(h => {
+        h.classList.remove('active');
+        if (h.nextElementSibling) h.nextElementSibling.classList.remove('active');
+      });
+
+      if (!isOpen) {
+        hdr.classList.add('active');
+        body.classList.add('active');
+      }
+    });
+  });
+}
