@@ -1,0 +1,94 @@
+# VidyāSetu (विद्या-सेतु)
+**A Teacher-Centric Adaptive Learning & Foundational Diagnostic Ecosystem for Classes 6 to 10**  
+*Code Kernel '26 — Decode Round Proposal*  
+*Track: Adaptive Learning for Classes 6 to 10*  
+*In Collaboration with Canvas Classes · Supported by MyStartupWave & Unstop*  
+*Host: X-Kernel, GRIET Hyderabad*
+
+---
+
+## 🌟 Executive Overview
+In an average Indian classroom of 45 to 60 students, moving at a single pace silently leaves behind students who miss foundational concepts in Classes 6 and 7, while leaving fast learners bored and disengaged. By the time students reach Class 9 and 10, these hidden learning gaps collide with high-stakes board exams, causing immense academic pressure.
+
+**VidyāSetu** is engineered from the ground up for Indian classrooms:
+- Adapts across all three pillars of studying: **Learn, Solve, and Test**.
+- Uses a **Reverse Prerequisite Knowledge Graph (DAG)** to diagnose multi-grade foundational gaps.
+- Puts the teacher back in command: Our **Classroom Co-Pilot** converts diagnostic data into a simple daily **"Rule of 3" Action Plan (Cohort Sprint, Cohort Guided, Cohort Bridge)** and generates ready-to-use **3-minute blackboard scripts**.
+- **Zero-Device Classroom Mode**: Optical scanning of 50 paper exit slips in under 60 seconds.
+- **Shared Family Phone Support**: Sibling PIN-protected profiles preventing data crosstalk.
+- **DPDP Act (2023) Compliance**: Zero biometric tracking, parental consent, role-based controls.
+
+---
+
+## 🚀 How to Run the Website
+
+### Option 1: Instant Browser View (Zero Setup)
+Simply double-click or open [`index.html`](file:///C:/Users/shrey/.gemini/antigravity/scratch/vidyasetu-adaptive-learning/index.html) in any browser (Chrome, Edge, Firefox, Brave, Safari). Everything works immediately offline!
+
+### Option 2: Run Full-Stack Python Backend (FastAPI + Swagger Docs)
+```bash
+cd C:\Users\shrey\.gemini\antigravity\scratch\vidyasetu-adaptive-learning
+pip install -r requirements.txt
+python server.py
+```
+- 🌐 **Web App:** [http://localhost:8000](http://localhost:8000)
+- 📚 **Interactive Swagger API Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
+
+### Option 3: Run Full-Stack Node.js Backend (Express)
+```bash
+npm install
+npm start
+```
+- 🌐 **Web App:** [http://localhost:8000](http://localhost:8000)
+
+---
+
+## 🏗 Architecture & Features Mapped to Proposal
+
+### 1. Adaptive LEARN (Modality & Language Switching)
+- **Real-World Indian Analogies:** Cricket run-rates ($R = \frac{T - C}{O}$) and kitchen chai/sugar proportions.
+- **60-Second Bilingual Micro-Audio:** Code-switched Hinglish and Telugish audio notes where technical terms stay in English while intuition is colloquial.
+- **Visual Micro-Comics:** Step-by-step visual breakdowns for visual learners.
+- **Interactive Taraazu Balance Scale:** Equations represented as balanced physical weighing scales.
+
+### 2. Adaptive SOLVE (Step-by-Step Diagnostics & "Time-Travel" Remediation)
+- **Digital Scratchpad:** Space for intermediate reasoning steps.
+- **"Time-Travel" Prerequisite Traversal:** If a student errs in Class 8, the engine traverses backward to Class 7 Negative Integer rules and provides an instant 2-minute bridging prompt at the exact point of failure.
+
+### 3. Adaptive TEST (Confidence-Calibrated Micro-Diagnostics)
+- 3-Question daily "Exit Tickets".
+- Paired with an interactive **Confidence Slider (Low, Medium, High)**:
+  - *Correct + Low Confidence* $\rightarrow$ **Lucky Guess** (requires subtle reinforcement).
+  - *Incorrect + High Confidence* $\rightarrow$ **Active Misconception** (urgent unlearning required!).
+  - *Correct + High Confidence* $\rightarrow$ **Firm Mastery**.
+
+### 4. Empowering the School Teacher (The "Rule of 3" Co-Pilot)
+- **Cohort Sprint (15%):** Mastered $\rightarrow$ assigned Olympiad / HOTS challenge worksheets.
+- **Cohort Guided (60%):** On-track $\rightarrow$ assigned standard textbook board practice.
+- **Cohort Bridge (25%):** Shared gap identified $\rightarrow$ auto-generates a **verbatim 3-minute blackboard lesson** for tomorrow's opening 5 minutes.
+- **Teacher-in-the-Loop Authority:** Teachers can override groupings, adjust parameters, and set pacing.
+
+### 5. Built for Indian Classrooms & Infrastructure
+- **Zero-Device Classroom Mode:** 1-page pre-printed exit slips scanned by teacher's camera in under 60 seconds (simulated interactive OCR).
+- **Offline-First PWA (<4MB):** IndexedDB local storage, runs seamlessly on 2G/intermittent data.
+- **Shared Family Phone Support:** PIN-protected sibling profiles (Aarav in Class 8, Diya in Class 6).
+- **DPDP Act (2023) Compliance:** Verifiable parental consent, zero location/biometric collection.
+
+---
+
+## 📡 REST API Endpoints (Section 6 Data Schema)
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/health` | Health & DPDP Act compliance status |
+| `GET` | `/api/dag/graph` | Directed Acyclic Knowledge Graph (multi-year prerequisites) |
+| `POST` | `/api/dag/reverse-traverse` | Reverse traversal to pinpoint root-cause prerequisite gaps |
+| `POST` | `/api/student/exit-ticket-evaluate` | Evaluates Exit Ticket with Confidence Matrix calibration |
+| `GET` | `/api/teacher/rule-of-three` | Returns Sprint/Guided/Bridge clusters & 3-min blackboard lesson |
+| `POST` | `/api/zerodevice/scan-batch` | Simulates optical paper scan of 50 exit slips in <60 seconds |
+
+---
+
+## ☁️ Deployment
+- **GitHub Pages:** Deploy static frontend from root branch.
+- **Render / Railway / Heroku:** Pre-configured `Procfile` and `Dockerfile` for free 1-click cloud hosting.
